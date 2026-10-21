@@ -1,0 +1,3 @@
+docker 29.3.1
+cpus=12 mem=8171761664 kernel=6.6.87.2-microsoft-standard-WSL2
+server_cpus=2,3 bench_cpus=6-9 n=1000000 r=100000 runs=3 java_opts=-Xms1g -Xmx1g -XX:+AlwaysPreTouch

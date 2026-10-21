@@ -1,0 +1,10 @@
+policy,run,acknowledged,recovered,lost
+always,1,719,720,0
+always,2,702,703,0
+always,3,703,704,0
+everysec,1,42351,42351,0
+everysec,2,42952,42952,0
+everysec,3,43118,43118,0
+no,1,43709,43709,0
+no,2,42284,42284,0
+no,3,45929,45930,0

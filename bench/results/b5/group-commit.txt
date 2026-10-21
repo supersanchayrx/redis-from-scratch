@@ -1,0 +1,3 @@
+clients=1 rps=178.82 fsyncs=50000 writes_per_fsync=1.0
+clients=50 rps=5237.25 fsyncs=1773 writes_per_fsync=28.2
+clients=200 rps=15979.55 fsyncs=409 writes_per_fsync=122.2

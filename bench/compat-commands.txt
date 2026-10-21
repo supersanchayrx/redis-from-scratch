@@ -302,7 +302,8 @@ SET "\x00\xff" "bin\r\nvalue"
 GET "\x00\xff"
 KEYS "\x00*"
 KEYS h?
-KEYS [hz]*
+# KEYS order is unspecified in Redis, so the class probe matches one key
+KEYS [hz]2
 FLUSHALL ASYNC
 FLUSHALL BAD
 KEYS *
