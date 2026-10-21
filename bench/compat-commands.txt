@@ -1,0 +1,314 @@
+# Replies compared byte for byte against real Redis 8.10.2 by bench/RespDiff.java.
+FLUSHALL
+PING
+PING hello
+ECHO "hello world"
+ping a b
+NOSUCHCMD a b
+NOSUCHCMD
+GET
+CONFIG GET save
+CONFIG GET appendonly
+CONFIG GET nosuchparam
+CONFIG GET
+CONFIG NOSUCH
+SELECT 0
+# SELECT 1: real Redis has 16 databases, this server has one (CONFIG GET databases), so it errors
+SELECT x
+DBSIZE
+# strings
+SET a 1
+GET a
+GET missing
+SET a 2 NX
+SET a 3 XX
+GET a
+SET b 1 XX
+SET a v EX
+SET a v EX 0
+SET a v EX -5
+SET a v EX abc
+SET a v PX 0
+SET a v NX XX
+SET a v EX 10 PX 100
+SET a v KEEPTTL EX 10
+SET a v BADOPT
+SET a v GET
+SET a w GET NX
+SET k ""
+GET k
+STRLEN a
+APPEND a xyz
+GET a
+APPEND newkey abc
+INCR counter
+INCR counter
+INCRBY counter 10
+DECR counter
+DECRBY counter 5
+INCRBY counter abc
+INCRBY counter 1.5
+SET big 9223372036854775807
+INCR big
+SET small -9223372036854775808
+DECR small
+DECRBY counter -9223372036854775808
+SET notnum hello
+INCR notnum
+SET sp " 1"
+INCR sp
+SET neg0 -0
+INCR neg0
+SET lz 01
+INCR lz
+SET plus +1
+INCR plus
+MSET m1 a m2 b m3 c
+MSET m1
+MSET m1 a m2
+MGET m1 m2 nosuch m3
+SETNX m1 x
+SETNX m9 x
+GETSET m1 new
+GETDEL m1
+GETDEL m1
+MSETNX m1 a m2 b
+MSETNX n1 a n2 b
+# keys
+EXISTS m2 m2 nosuch
+DEL m2 m3 nosuch
+TYPE a
+TYPE nosuch
+RENAME nosuch x
+RENAME n1 n1renamed
+GET n1renamed
+# expiry
+SET t 1 EX 100
+TTL t
+PTTL nosuch
+TTL nosuch
+TTL a
+EXPIRE nosuch 10
+EXPIRE a 100
+TTL a
+EXPIRE a abc
+EXPIRE a 100 NX
+EXPIRE a 200 XX
+EXPIRE a 50 GT
+EXPIRE a 50 LT
+TTL a
+EXPIRE a 10 NX XX
+EXPIRE a 10 GT LT
+EXPIRE a 10 FOO
+EXPIRE a 9223372036854775807
+PERSIST a
+PERSIST a
+TTL a
+EXPIRE a 0
+EXISTS a
+EXPIRE t -1
+EXISTS t
+SETEX se 0 v
+SETEX se 100 v
+TTL se
+PSETEX pse 100000 v
+TTL pse
+SET a 1
+INCR a
+EXPIRE a 100
+INCR a
+TTL a
+SET a 1
+TTL a
+# lists
+LPUSH l a b c
+LRANGE l 0 -1
+RPUSH l d e
+LRANGE l 0 -1
+LRANGE l -2 -1
+LRANGE l 1 2
+LRANGE l 5 10
+LRANGE l -100 100
+LRANGE l 3 1
+LRANGE l a b
+LRANGE nosuch 0 -1
+LLEN l
+LLEN nosuch
+LINDEX l 0
+LINDEX l -1
+LINDEX l 99
+LSET l 0 z
+LSET l 99 z
+LSET nosuch 0 z
+LRANGE l 0 -1
+LPOP l
+RPOP l
+LPOP l 2
+LPOP l 0
+LPOP l -1
+LPOP nosuch
+LPOP nosuch 2
+RPOP l 10
+EXISTS l
+LPUSHX l a
+RPUSH l a b a c a
+LREM l 2 a
+LRANGE l 0 -1
+LREM l -1 a
+LRANGE l 0 -1
+LTRIM l 0 0
+LRANGE l 0 -1
+LTRIM l 5 10
+EXISTS l
+LPUSH a x
+GET l
+# hashes
+HSET h f1 v1 f2 v2
+HSET h f1 new f3 v3
+HSET h f1
+HGET h f1
+HGET h nosuch
+HGET nosuch f
+HMGET h f1 nosuch f3
+HGETALL h
+HKEYS h
+HVALS h
+HLEN h
+HEXISTS h f1
+HEXISTS h nope
+HSTRLEN h f1
+HSETNX h f1 x
+HSETNX h f9 x
+HINCRBY h n 5
+HINCRBY h n -10
+HINCRBY h f1 1
+HINCRBY h n abc
+HDEL h f1 f2 nosuch
+HDEL h f3 f9 n
+EXISTS h
+HGETALL nosuch
+HMSET h2 a 1 b 2
+# sorted sets
+ZADD z 1 a 2 b 3 c
+ZADD z 1.5 a
+ZADD z 0.1 d
+ZADD z inf e -inf f
+ZADD z +inf g
+ZADD z 1e3 h
+ZADD z 1e20 big
+ZADD z 1e17 ten17
+ZADD z 12345678901234567890 huge
+ZADD z 0.0001 tenk
+ZADD z 1e16 ten16
+ZADD z 1e15 ten15
+ZADD z 123456789 i
+ZADD z 0.000123 tiny
+ZADD z 0.0000123 tinier
+ZADD z 1.23e-7 tiniest
+ZADD z -2.5 neg
+ZADD z 3.14159265358979 pi
+ZADD z nan x
+ZADD z abc x
+ZADD z 1 x 2
+ZADD z NX XX 1 x
+ZADD z GT LT 1 x
+ZADD z INCR 1 a 2 b
+ZADD z " 1" x
+ZADD z 1e400 x
+ZADD z 0x10 x
+ZADD z 5. x5
+ZADD z .5 x05
+ZADD z Infinity x6
+ZADD z -INF x7
+ZRANGE z 0 -1 WITHSCORES
+ZCARD z
+ZSCORE z a
+ZSCORE z e
+ZSCORE z f
+ZSCORE z nosuch
+ZMSCORE z a nosuch b
+ZRANK z a
+ZRANK z f
+ZRANK z nosuch
+ZRANK z a WITHSCORE
+ZREVRANK z a
+ZRANGE z 0 2
+ZRANGE z -3 -1 WITHSCORES
+ZRANGE z 0 -1 REV
+ZRANGE z 1 3 REV WITHSCORES
+ZRANGE z 100 200
+ZRANGE z 0 1 LIMIT 0 1
+ZRANGE z 0 1 FOO
+ZRANGE z (1 3 BYSCORE WITHSCORES
+ZRANGE z 3 (1 BYSCORE REV
+ZRANGE z -inf +inf BYSCORE LIMIT 1 2
+ZRANGE z -inf +inf BYSCORE LIMIT 1 -1
+ZRANGE z abc 3 BYSCORE
+ZREVRANGE z 0 2 WITHSCORES
+ZREVRANGE z 0 2 REV
+ZRANGEBYSCORE z 1 3
+ZRANGEBYSCORE z 1 3 WITHSCORES LIMIT 0 2
+ZREVRANGEBYSCORE z 3 1
+ZCOUNT z 1 3
+ZCOUNT z (1 (3
+ZCOUNT z -inf +inf
+ZCOUNT z 5 1
+ZINCRBY z 10 a
+ZINCRBY z 1 newmember
+ZINCRBY z abc a
+ZADD z XX 100 nosuchmember
+ZADD z NX 100 a
+ZADD z XX CH 100 a
+ZADD z GT 1 a
+ZADD z LT 1 a
+ZADD z INCR 5 a
+ZADD z XX INCR 5 nosuchmember
+ZADD zz XX 1 a
+ZREM z a nosuch
+ZPOPMIN z
+ZPOPMAX z
+ZPOPMIN z 2
+ZPOPMIN z 0
+ZPOPMIN z -1
+ZPOPMIN nosuch
+ZRANGE nosuch 0 -1
+ZADD z2 1 a 1 b 1 c 1 "\xff" 1 "\x80" 1 A
+ZRANGE z2 0 -1
+ZPOPMIN z2 100
+EXISTS z2
+ZADD tie 0 b 0 a 0 c
+ZRANK tie c
+ZADD sm 1 x
+ZADD sm -0 y
+ZSCORE sm y
+# wrongtype
+LPUSH zl x
+GET zl
+SET zs x
+LPUSH zs x
+HGET zs f
+ZADD zs 1 a
+ZSCORE zs a
+MGET zs zl a
+INCR zl
+# pubsub (non-subscribed side)
+PUBLISH ch msg
+PUBSUB NUMSUB ch
+PUBSUB NUMPAT
+UNSUBSCRIBE
+PUNSUBSCRIBE
+# binary keys
+SET "\x00\xff" "bin\r\nvalue"
+GET "\x00\xff"
+KEYS "\x00*"
+KEYS h?
+KEYS [hz]*
+FLUSHALL ASYNC
+FLUSHALL BAD
+KEYS *
+DBSIZE
+# score formatting edges (d2string / fpconv)
+ZADD fmt 1e18 a 1e19 b 1.5e19 c 9.9e19 d 123e18 e 1e-4 f 1.5e-4 g 1e-5 h 0.00001234 i 1e-300 j 1e300 k 2.5e-6 l 123.456 m 1234567.125 n -1e19 o -0.00001234 p 4611686018427387904 q 0.30000000000000004 r
+ZRANGE fmt 0 -1 WITHSCORES
+ZINCRBY fmt 0.1 r
+ZINCRBY fmt 0.2 r
