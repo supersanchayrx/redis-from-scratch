@@ -156,9 +156,35 @@ client. The client never heard "OK", so it must treat that write as unknown, not
 Under `always` the one-at-a-time writer manages about 175 writes/s: each write waits for its own fsync
 (about 5.7 ms), the 1-client row of the group-commit table above.
 
+## B7. GC and tail latency
+
+SET and GET (`-t set,get`, 1M requests each, 50 clients), same setup as B1, once with the default G1 and once with
+generational ZGC (`-XX:+UseZGC -XX:+ZGenerational`), each with `-Xlog:gc`. One warm-up run, then the log is cleared
+and three timed runs follow. Raw CSVs and both GC logs: [bench/results/b7/](bench/results/b7/).
+
+| GC | Run | SET req/s | SET p99 | SET max | GET max |
+|---|---:|---:|---:|---:|---:|
+| G1 | 1 | 87,192 | 0.807 | 6.4 | 3.4 |
+| G1 | 2 | 84,674 | 0.815 | **16.8** | 4.0 |
+| G1 | 3 | 86,155 | 0.879 | **25.2** | 4.0 |
+| ZGC (generational) | 1 | 83,257 | 0.919 | 11.1 | 2.9 |
+| ZGC (generational) | 2 | 79,859 | 0.951 | 5.3 | 3.5 |
+| ZGC (generational) | 3 | 85,048 | 0.815 | 6.6 | 10.3 |
+
+(latencies in ms)
+
+The G1 log has exactly two stop-the-world pauses across the three timed runs, both young collections:
+**15.3 ms** and **24.4 ms**. The two worst SET max latencies, 16.8 ms and 25.2 ms, are those pauses plus a
+normal request. So B4's tail is the young-generation collector: every request in flight waits for it,
+because there is only one thread to wait on. Each collection reclaims about 600 MB, so at this allocation rate the
+heap fills every 30 s or so.
+
+ZGC collects concurrently; its log at this level records no pauses, and its worst SET latency was 11 ms rather
+than 25 ms, for about 3% less SET throughput (median 83,257 vs 86,155). Its remaining spikes are smaller and not tied
+to logged collections. The real fix is to allocate less per command (see B1); a collector only changes how the cost
+of allocation is paid.
+
 ## Not measured yet
 
-- **B7. GC and tail latency:** G1 vs generational ZGC (`-XX:+UseZGC -XX:+ZGenerational`) with `-Xlog:gc`, to
-  attribute B4's max latency to specific pauses.
 - **B8. Memory per key:** 1M keys, Redis `used_memory` vs JVM heap after a full GC.
 - A power-loss version of B6 (killing the Docker VM rather than the process).

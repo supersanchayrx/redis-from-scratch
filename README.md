@@ -25,7 +25,7 @@ CPUs. Method and every table: [BENCHMARKS.md](BENCHMARKS.md).
   ([crash test](bench/crash-test.md)). Under `appendfsync always`, group commit puts 28 writes in each fsync at
   50 clients and 122 at 200.
 - **Where Java loses:** per-request allocation (about 75% of Redis's unpipelined throughput, 65% on pipelined GET),
-  and GC in the tail: p99 is twice Redis's, and max latency reached 52 ms against Redis's 10 ms.
+  and GC in the tail: p99 is twice Redis's, and the worst max latencies line up with G1 young-generation pauses (15–24 ms, B7).
 
 ## Run it
 
@@ -192,7 +192,7 @@ copy-on-write memory, and the JVM can't fork.
 - [x] AOF append and replay on restart
 - [x] Tests: parser split tests, skip-list invariants, AOF crash and replay
 - [x] Benchmarks against real Redis
-- [ ] GC and tail latency: G1 vs generational ZGC (B7)
+- [x] GC and tail latency: G1 vs generational ZGC (B7)
 - [ ] Memory per key vs Redis (B8)
 
 ## References
