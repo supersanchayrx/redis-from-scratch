@@ -81,9 +81,8 @@ per command falls. Pipelining (B2) gets far more out of the same idea than addin
 | GET | Redis | 0.271 | 0.367 | 0.567 | 2.303 |
 
 Medians are close (about 0.1 ms apart). The tail is where Java pays: p99 roughly doubles, and SET's max across the
-three runs ranged 11–52 ms. The likely cause is stop-the-world young-generation GC pauses (plus JIT activity
-early on), which stop every client at once because there is one thread; Redis has no collector, so its tail stays
-tight. That attribution isn't measured yet: a GC log comparing G1 with generational ZGC is the planned B7.
+three runs ranged 11–52 ms. B7 ties those spikes to G1's stop-the-world young-generation pauses, which stop every
+client at once because there is one thread; Redis has no collector, so its tail stays tight.
 
 ## B5. AOF cost (SET, 50 clients)
 
