@@ -19,6 +19,8 @@ public final class Config {
     public Fsync appendfsync = Fsync.EVERYSEC;
     public int hz = 10;
     public String loglevel = "notice";
+    /** With appendfsync everysec, fsync on a background thread (like Redis's bio) instead of the loop. */
+    public boolean aofFsyncThread = true;
 
     /** client-output-buffer-limit pubsub: hard bytes, soft bytes, soft seconds (Redis default 32mb 8mb 60). */
     public long pubsubHardLimit = 32L * 1024 * 1024;
@@ -55,6 +57,7 @@ public final class Config {
                             "--loglevel must be debug, verbose, notice or warning, got '" + value + "'");
                 };
                 case "client-output-buffer-limit-pubsub" -> c.parsePubsubLimit(value);
+                case "aof-fsync-thread" -> c.aofFsyncThread = parseYesNo(flag, value);
                 default -> throw new IllegalArgumentException("unknown flag " + flag);
             }
         }

@@ -70,6 +70,7 @@ public final class EventLoop {
     private long iterations;
     private long totalConnections;
     private long rejectedProtocol;
+    private long longestIterationNanos;
 
     public EventLoop(Clock clock) {
         this.clock = clock;
@@ -137,6 +138,7 @@ public final class EventLoop {
             selector.select(Math.min(ms, 1000));
         }
         iterations++;
+        long busyStart = clock.nanos();
 
         Iterator<SelectionKey> it = selector.selectedKeys().iterator();
         while (it.hasNext()) {
@@ -167,6 +169,8 @@ public final class EventLoop {
 
         timers.runDue(clock.nanos());
         beforeSleep();
+        // How long every client waited on this iteration: the number a blocking fsync or rewrite shows up in.
+        longestIterationNanos = Math.max(longestIterationNanos, clock.nanos() - busyStart);
     }
 
     private void acceptAll() {
@@ -370,6 +374,15 @@ public final class EventLoop {
 
     public long rejectedProtocol() {
         return rejectedProtocol;
+    }
+
+    public long longestIterationNanos() {
+        return longestIterationNanos;
+    }
+
+    /** CONFIG RESETSTAT. */
+    public void resetStats() {
+        longestIterationNanos = 0;
     }
 
     private static String describe(SocketChannel ch) {

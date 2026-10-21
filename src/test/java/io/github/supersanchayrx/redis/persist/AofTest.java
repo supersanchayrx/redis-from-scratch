@@ -213,6 +213,69 @@ class AofTest {
     }
 
     @Test
+    void rewriteCompactsAndReplaysToTheSameKeyspace() throws Exception {
+        FakeClock clock = new FakeClock(T0);
+        Harness h = open(clock);
+        for (int i = 0; i < 1000; i++) {
+            h.run("INCR counter");
+        }
+        for (int i = 0; i < 200; i++) {
+            h.run("RPUSH list item" + i);
+            h.run("HSET hash f" + i + " v" + i);
+            h.run("ZADD zset " + (i * 0.1) + " m" + i);
+        }
+        h.run("ZADD zset inf top -inf bottom");
+        h.run("SET ttl v EX 500");
+        h.run("SET dead v PX 1");
+        clock.advanceMillis(10); // "dead" has expired but nobody has read it
+        h.ctx.aof.flush();
+        long before = Files.size(dir.resolve(Aof.FILE_NAME));
+        String reply = h.run("BGREWRITEAOF");
+        assertTrue(reply.startsWith("+Append only file rewritten (5 keys"), reply);
+        long after = Files.size(dir.resolve(Aof.FILE_NAME));
+        assertTrue(after < before / 3, before + " -> " + after);
+
+        // Writes after the rewrite go to the new file.
+        h.run("INCR counter");
+        List<String> reads = List.of("GET counter", "LRANGE list 0 -1", "HGETALL hash", "ZRANGE zset 0 -1 WITHSCORES",
+                "PTTL ttl", "EXISTS dead", "DBSIZE");
+        List<String> expected = h.runAll(reads.toArray(new String[0]));
+        h.ctx.aof.close();
+        Harness restarted = open(clock);
+        assertEquals(expected, restarted.runAll(reads.toArray(new String[0])));
+        assertEquals(bulk("1001"), restarted.run("GET counter"));
+    }
+
+    @Test
+    void everysecFsyncsOnTheBackgroundThread() throws Exception {
+        Config c = config();
+        c.appendfsync = Config.Fsync.EVERYSEC;
+        Harness h = new Harness(c, new FakeClock(T0));
+        h.ctx.aof.open();
+        assertTrue(h.ctx.aof.backgroundFsync());
+        h.run("SET a 1");
+        h.ctx.aof.flush();
+        assertEquals(0, h.ctx.aof.fsyncs(), "everysec doesn't fsync on flush");
+        h.ctx.aof.fsyncIfNeeded();
+        long deadline = System.currentTimeMillis() + 5000;
+        while (h.ctx.aof.fsyncs() == 0 && System.currentTimeMillis() < deadline) {
+            Thread.sleep(5);
+        }
+        assertEquals(1, h.ctx.aof.fsyncs());
+        h.ctx.aof.fsyncIfNeeded(); // nothing new written: no second fsync
+        Thread.sleep(50);
+        assertEquals(1, h.ctx.aof.fsyncs());
+        h.ctx.aof.close();
+        assertEquals(cmd("SET", "a", "1"), file());
+    }
+
+    @Test
+    void rewriteNeedsTheAofOn() {
+        Harness h = new Harness();
+        assertTrue(h.run("BGREWRITEAOF").startsWith("-ERR AOF is off"));
+    }
+
+    @Test
     void groupCommitOneFsyncPerFlush() throws Exception {
         Harness h = open(new FakeClock(T0));
         for (int i = 0; i < 50; i++) {

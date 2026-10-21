@@ -2,6 +2,7 @@ package io.github.supersanchayrx.redis.store;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.random.RandomGenerator;
 
@@ -104,6 +105,15 @@ public final class Keyspace {
         for (Map.Entry<Key, Value> e : data.entrySet()) {
             if (!isExpired(e.getKey())) {
                 action.accept(e.getKey());
+            }
+        }
+    }
+
+    /** Every live key with its value, for the AOF rewrite. */
+    public void forEachLive(BiConsumer<Key, Value> action) {
+        for (Map.Entry<Key, Value> e : data.entrySet()) {
+            if (!isExpired(e.getKey())) {
+                action.accept(e.getKey(), e.getValue());
             }
         }
     }

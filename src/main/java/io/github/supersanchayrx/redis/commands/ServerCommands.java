@@ -1,5 +1,6 @@
 package io.github.supersanchayrx.redis.commands;
 
+import io.github.supersanchayrx.redis.persist.Aof;
 import io.github.supersanchayrx.redis.protocol.Resp;
 import io.github.supersanchayrx.redis.server.Client;
 import io.github.supersanchayrx.redis.util.Bytes;
@@ -45,6 +46,23 @@ final class ServerCommands {
         t.add("SELECT", 2, FAST, ServerCommands::select);
         t.add("TIME", 1, FAST, ServerCommands::time);
         t.add("CLIENT", -2, 0, ServerCommands::client);
+        // Not a WRITE: the rewrite itself must never be logged.
+        t.add("BGREWRITEAOF", 1, 0, ServerCommands::rewriteAof);
+    }
+
+    /** A blocking rewrite: the reply says so, with how long the loop was paused. */
+    private static void rewriteAof(Context ctx, Client c, byte[][] a) {
+        if (!ctx.aof.isOpen()) {
+            throw new CommandException("ERR AOF is off: start the server with --appendonly yes");
+        }
+        try {
+            Aof.RewriteResult r = ctx.aof.rewrite(ctx.ks);
+            c.out.simple(String.format(Locale.ROOT, "Append only file rewritten (%d keys, blocking, %.1f ms)",
+                    r.keys(), r.nanos() / 1e6));
+        } catch (java.io.IOException e) {
+            LOG.warning("AOF rewrite failed: " + e.getMessage());
+            throw new CommandException("ERR AOF rewrite failed: " + e.getMessage());
+        }
     }
 
     private static void ping(Context ctx, Client c, byte[][] a) {
@@ -104,6 +122,7 @@ final class ServerCommands {
                 if (a.length != 2) {
                     throw CommandException.wrongArgs("config|resetstat");
                 }
+                ctx.loop.resetStats();
                 c.out.raw(Resp.OK);
             }
             case "set", "rewrite" -> throw new CommandException(
@@ -194,6 +213,8 @@ final class ServerCommands {
                 .append("aof_fsync_policy:").append(ctx.config.appendfsync.name().toLowerCase(Locale.ROOT)).append("\r\n")
                 .append("aof_bytes_written:").append(ctx.aof.bytesWritten()).append("\r\n")
                 .append("aof_fsyncs:").append(ctx.aof.fsyncs()).append("\r\n")
+                .append("aof_fsync_thread:").append(ctx.aof.backgroundFsync() ? 1 : 0).append("\r\n")
+                .append("aof_delayed_fsync:").append(ctx.aof.delayedFsyncs()).append("\r\n")
                 .append("aof_longest_fsync_us:").append(ctx.aof.longestFsyncNanos() / 1000).append("\r\n")
                 .append("\r\n# Stats\r\n")
                 .append("total_connections_received:").append(ctx.loop.totalConnections()).append("\r\n")
@@ -201,6 +222,7 @@ final class ServerCommands {
                 .append("rejected_protocol_errors:").append(ctx.loop.rejectedProtocol()).append("\r\n")
                 .append("expired_keys:").append(ctx.ks.expiredKeys()).append("\r\n")
                 .append("event_loop_iterations:").append(ctx.loop.iterations()).append("\r\n")
+                .append("event_loop_longest_iteration_us:").append(ctx.loop.longestIterationNanos() / 1000).append("\r\n")
                 .append("pubsub_channels:").append(ctx.pubsub.channelCount()).append("\r\n")
                 .append("pubsub_patterns:").append(ctx.pubsub.patternCount()).append("\r\n")
                 .append("pubsub_hard_limit_disconnects:").append(ctx.pubsub.hardLimitDisconnects()).append("\r\n")

@@ -28,7 +28,8 @@ public final class Main {
         } catch (IllegalArgumentException e) {
             System.err.println("redis-from-scratch: " + e.getMessage());
             System.err.println("flags: --port N --bind ADDR --dir PATH --appendonly yes|no"
-                    + " --appendfsync always|everysec|no --hz N --loglevel debug|verbose|notice|warning");
+                    + " --appendfsync always|everysec|no --hz N --loglevel debug|verbose|notice|warning"
+                    + " --aof-fsync-thread yes|no --client-output-buffer-limit-pubsub '32mb 8mb 60'");
             System.exit(1);
             return;
         }
