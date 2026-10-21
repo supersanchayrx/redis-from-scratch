@@ -1,0 +1,10 @@
+target/
+out/
+*.class
+*.jar
+*.log
+.idea/
+*.iml
+.vscode/
+appendonly.aof
+*.aof
